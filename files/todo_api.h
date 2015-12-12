@@ -3,7 +3,7 @@
  */
 #include <linux/errno.h>
 
-int send_mpi_message(int rank, const char *message, ssize_t message_size)
+int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size)
  {
 	 int res;
 	 __asm__
@@ -12,7 +12,7 @@ int send_mpi_message(int rank, const char *message, ssize_t message_size)
 		 "pushl %%ebx;"
 		 "pushl %%ecx;"
 		 "pushl %%edx;"
-		 "movl $244, %%eax;"
+		 "movl $243, %%eax;"
 		 "movl %1, %%ebx;"
 		 "movl %2, %%ecx;"
 		 "movl %3, %%edx;"
@@ -23,7 +23,7 @@ int send_mpi_message(int rank, const char *message, ssize_t message_size)
 		 "popl %%ebx;"
 		 "popl %%eax;"
 		 : "=m" (res)
-		 : "m" (rank) ,"m" (message) ,"m"(message_size)
+		 : "m" (pid) ,"m" (TODO_description) ,"m"(description_size)
 		 );
 	 if (res >= (unsigned long)(-125))
 	 {
@@ -33,7 +33,43 @@ int send_mpi_message(int rank, const char *message, ssize_t message_size)
 	 return (int) res;
  }
  
- int receive_mpi_message(int rank, char *message, ssize_t message_size)
+ ssize_t read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status)
+ {
+	 int res;
+	 __asm__
+		(
+		 "pushl %%eax;"
+		 "pushl %%ebx;"
+		 "pushl %%ecx;"
+		 "pushl %%edx;"
+		 "pushl %%esi;"
+		 "pushl %%edi;"
+		 "movl $244, %%eax;"
+		 "movl %1, %%ebx;"
+		 "movl %2, %%ecx;"
+		 "movl %3, %%edx;"
+		 "movl %4, %%esi;"
+		 "movl %5, %%edi;"
+		 "int $0x80;"
+		 "movl %%eax,%0;"
+		 "popl %%edi;"
+		 "popl %%esi;"
+		 "popl %%edx;"
+		 "popl %%ecx;"
+		 "popl %%ebx;"
+		 "popl %%eax;"
+		 : "=m" (res)
+		 : "m" (pid) ,"m" (TODO_index) ,"m"(TODO_description) ,"m"(description_size) ,"m"(status);
+		 );
+	 if (res >= (unsigned long)(-125))
+	 {
+		 errno = -res;
+		 res = -1;
+	 }
+	 return (int) res;
+ }
+ 
+ int mark_TODO(pid_t pid, int TODO_index, int status)
  {
 	 int res;
 	 __asm__
@@ -53,7 +89,7 @@ int send_mpi_message(int rank, const char *message, ssize_t message_size)
 		 "popl %%ebx;"
 		 "popl %%eax;"
 		 : "=m" (res)
-		 : "m" (rank) ,"m" (message) ,"m"(message_size)
+		 : "m" (pid) ,"m" (TODO_index) ,"m"(status)
 		 );
 	 if (res >= (unsigned long)(-125))
 	 {
@@ -63,16 +99,22 @@ int send_mpi_message(int rank, const char *message, ssize_t message_size)
 	 return (int) res;
  }
  
-int register_mpi(void)
+int delete_TODO(pid_t pid, int TODO_index)
  {
 	 int res;
 	 __asm__
 		(
 		 "pushl %%eax;"
-		 "movl $243, %%eax;"
+		 "pushl %%ecx;"
+		 "pushl %%edx;"
+		 "movl $246, %%eax;"
 		 "int $0x80;"
 		 "movl %%eax,%0;"
+		 "popl %%ecx;"
+		 "popl %%ebx;"
+		 "popl %%eax;"		 
 		 : "=m" (res)
+		 : "m"(pid) ,"m"(TODO_index)
 		 );
 	 if (res >= (unsigned long)(-125))
 	 {
