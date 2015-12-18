@@ -1,7 +1,8 @@
 /*
  * todo_api.h
  */
-#include <linux/errno.h>
+#include <errno.h>
+#include <sys/types.h>
 
 int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size)
  {
@@ -59,7 +60,7 @@ int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size)
 		 "popl %%ebx;"
 		 "popl %%eax;"
 		 : "=m" (res)
-		 : "m" (pid) ,"m" (TODO_index) ,"m"(TODO_description) ,"m"(description_size) ,"m"(status);
+		 : "m" (pid) ,"m" (TODO_index) ,"m"(TODO_description) ,"m"(description_size) ,"m"(status)
 		 );
 	 if (res >= (unsigned long)(-125))
 	 {

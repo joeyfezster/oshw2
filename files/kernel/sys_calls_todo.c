@@ -1,6 +1,7 @@
 /* Joey&Noy*/
 #include <linux/sys_calls_todo.h>
 #include <linux/string.h>
+#include <linux/sched.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -11,16 +12,14 @@
 #endif
 
 
-extern struct task_struct *find_task_by_vpid(pid_t nr);
-
 //--------------------------Utility funcs -----------------------------------------------------
 
 int isDesendantOfCurrentProcess(pid_t maybe_baby){
-	task_t* child = find_task_by_vpid(maybe_baby);
+	task_t* child = find_task_by_pid(maybe_baby);
 	if(child == NULL) return FALSE; //no such pid
 	
 	pid_t currentPID = current->pid;
-	while(child->pid !=  task_init->pid){
+	while(child->pid !=  1){
 		if (child->p_pptr->pid == currentPID) return TRUE;
 		child = child->p_pptr;
 	}
@@ -81,7 +80,7 @@ int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_si
 	newTodo->desc_size = description_size;
 	
 	//add the new todo element to the list
-	task_t* t = find_task_by_vpid(pid);
+	task_t* t = find_task_by_pid(pid);
 	list_t todoList = t->todo_list;
 	list_add_tail(&newTodo->link, &todoList);
 	
