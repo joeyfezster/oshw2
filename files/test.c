@@ -94,12 +94,12 @@ void checkResult( int returnValue , int expectedReturnValue, int expectedError, 
 	
 	int errsv = errno;
 	if (returnValue != expectedReturnValue) {
-		printf("checkResult failed, wrong return value - %d, %s\n", returnValue, testName);
+		printf("checkResult failed, wrong return value - %d, ERRNO=%d, %s\n\n", returnValue, errsv, testName);
 	}
 
 	if (returnValue == expectedReturnValue && returnValue == -1) {
 		if (errsv != expectedError) {
-			printf("checkResult failed, wrong error value - %s\n", testName);
+			printf("checkResult failed, wrong error value - expected %d, got %d; %s\n\n", expectedError, errsv, testName);
 		}
 	}
 
@@ -113,13 +113,13 @@ void testPrint(char* str){
 
 void checkStatus (int one, int two,const char* testName) {
 	if (one != two) {
-		printf("Check number %s failed, wrong returned status\n", testName);
+		printf("Check number failed, expected: %d, saw: %d, wrong returned status, testName: %s\n",two, one, testName);
 	}
 }
 
 void checkDesc (char* one, char* two, const char* testName) {
 	if (strcmp(one, two) != 0) {
-		printf("checkDesc failed - %s\n", testName);
+		printf("checkDesc failed - expected: %s, saw: %s. testname: %s\n", two, one, testName);
 	}
 }
 
@@ -312,7 +312,7 @@ int main()
 	testPrint("2.38,");
 	checkResult(delete_TODO(myPid, 2) , 0 , 0, "delete 2nd item");	
 
-	// check 1 is the same, 3->2 and 3 doesnt exist
+	//check 1 is the same, 3->2 and 3 doesnt exist
 	testPrint("2.39,");
 	testPrint("2.40!\n");
 	checkResult(read_TODO(myPid, 1, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "read 1 after delete");	
@@ -444,30 +444,34 @@ int main()
 			
 			
 			
-			
+			testPrint("3.1,");
 			checkResult(read_TODO(sonPid, 1, pDesc, sizeOfReadBuffer, pStatus) , -1 , EINVAL, "grandson - read 1st element of empty queue, invalid index");	
 			checkResult(add_TODO(sonPid, str1, descLength) , 0 , 0, "grandson - add1");			
 			checkResult(add_TODO(sonPid, str2, descLength) , 0 , 0, "grandson - add2");
 			checkResult(add_TODO(sonPid, str3, descLength) , 0 , 0, "grandson - add3");
 			
+			testPrint("3.5,");
 			checkResult(mark_TODO(sonPid, 2, 5) , 0 , 0, "grandson - mark 2nd element as 5");	
 			
 			checkResult(read_TODO(sonPid, 1, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "grandson - read 1 after add");	
 			checkStatus (*pStatus, 0, "grandson - read 1 after add");
 			checkDesc (pDesc, str1, "grandson - read 1 after add");
 			checkResult(read_TODO(sonPid, 2, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "grandson - read 2 after add");	
+			testPrint("3.10,");
 			checkStatus (*pStatus, 5, "grandson - read 2 after add");
 			checkDesc (pDesc, str2, "grandson - read 2 after add");
 			checkResult(read_TODO(sonPid, 3, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "grandson - read 3 after add");	
 			checkStatus (*pStatus, 0, "grandson - read 3 after add");
 			checkDesc (pDesc, str3, "grandson - read 3 after add");
 			
+			testPrint("3.15,");
 			checkResult(read_TODO(sonPid, 3, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "grandson - read 3 after add");	
 			checkStatus (*pStatus, 0, "grandson - read 3 after add");
 			checkDesc (pDesc, str3, "grandson - read 3 after add");			
 
 			checkResult(read_TODO(grandsonPid, 1, pDesc, sizeOfReadBuffer, pStatus) , -1 , EINVAL, "grandson - read 1st element of empty queue, invalid index");	
 			checkResult(add_TODO(grandsonPid, str1, descLength) , 0 , 0, "grandson - add1");			
+			testPrint("3.20,");
 			checkResult(add_TODO(grandsonPid, str2, descLength) , 0 , 0, "grandson - add2");
 			checkResult(add_TODO(grandsonPid, str3, descLength) , 0 , 0, "grandson - add3");
 			
@@ -475,11 +479,13 @@ int main()
 			
 			checkResult(read_TODO(grandsonPid, 1, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "grandson - read 1 after add");	
 			checkStatus (*pStatus, 0, "grandson - read 1 after add");
+			testPrint("3.25,");
 			checkDesc (pDesc, str1, "grandson - read 1 after add");
 			checkResult(read_TODO(grandsonPid, 2, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "grandson - read 2 after add");	
 			checkStatus (*pStatus, 5, "grandson - read 2 after add");
 			checkDesc (pDesc, str2, "grandson - read 2 after add");
 			checkResult(read_TODO(grandsonPid, 3, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "grandson - read 3 after add");	
+			testPrint("3.30,");
 			checkStatus (*pStatus, 0, "grandson - read 3 after add");
 			checkDesc (pDesc, str3, "grandson - read 3 after add");
 			

@@ -47,17 +47,13 @@ int legalAccessToProcess(pid_t pid){
 
 TODO* getTODOByIndex(list_t* head, int index){
 	PDEBUG("index=%d, head is null?: %s", index, ISNULL(head));
-	if(head == NULL || index < 1 || current == NULL) return NULL;
-	// if(WARN_ON( current->todo_list == NULL)){
-			// PDEBUG("Horrible things!!!! current->todo_list is null!!\ncurrent is %d", current->pid);
-			// return NULL;
-	// }
+	if(head == NULL || index < 1 ) return NULL;
 	
 	list_t *it, *next;
 	int counter =1;
-	// delete the list if it isn't empty 
+	// if the list isn't empty, try find the requested index, return the TODO
 	if (!list_empty(head)){
-		list_for_each_safe(it, next, &current->todo_list){
+		list_for_each_safe(it, next, head){
 			if(counter==index){
 				TODO* todo_s = list_entry(it, TODO, link);
 				PDEBUG("returning index %d, result is null?: %s", counter, ISNULL(todo_s));
@@ -128,15 +124,16 @@ ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t
 	if(TODO_index < 1 || TODO_description == NULL || description_size <1 || status == NULL) return -EINVAL;
 	
 	//check index within range
-	struct task_struct *tsk = current;
-	TODO* todo_s = getTODOByIndex(&current->todo_list, TODO_index);
+	task_t* t = find_task_by_pid(pid);
+	if(t == NULL) return -ESRCH;
+	TODO* todo_s = getTODOByIndex(&t->todo_list, TODO_index);
 	if(todo_s == NULL) return -EINVAL;
 	
 	//check buffer size < actual description size (buffer is big enough to hold the result)
 	ssize_t actualSize = todo_s->desc_size;
 	if(description_size < actualSize) return -EINVAL;
 	/**********************************************************/
-	
+	PDEBUG("this pid: %d, requested pid: %d, todo index %d, description: %s, descriptionSize: %d, status: %d", current->pid, pid, TODO_index, todo_s->desc, todo_s->desc_size, todo_s->status);
 	if(copy_to_user(TODO_description, todo_s->desc, actualSize) != 0){ //only copy what we really need
 		return -EFAULT;
 	}
@@ -150,8 +147,9 @@ int sys_mark_TODO(pid_t pid, int TODO_index, int status){
 	//check legal parameters
 	if(TODO_index < 1) return -EINVAL;
 	//check index within range
-	struct task_struct *tsk = current;
-	TODO* todo_s = getTODOByIndex(&current->todo_list, TODO_index);
+	task_t* t = find_task_by_pid(pid);
+	if(t == NULL) return -ESRCH;
+	TODO* todo_s = getTODOByIndex(&t->todo_list, TODO_index);
 	if(todo_s == NULL) return -EINVAL;
 	/**************************************************************/
 	
@@ -166,32 +164,16 @@ int sys_delete_TODO(pid_t pid, int TODO_index){
 	//check legal parameters
 	if(TODO_index < 1) return -EINVAL;
 	//check index within range
-	struct task_struct *tsk = current;
-	TODO* todo_s = getTODOByIndex(&current->todo_list, TODO_index);
+	task_t* t = find_task_by_pid(pid);
+	if(t == NULL) return -ESRCH;
+	TODO* todo_s = getTODOByIndex(&t->todo_list, TODO_index);
 	if(todo_s == NULL) return -EINVAL;	
 	
 	PDEBUG("delete todo validations complete!");
 	/***************************************************************/
 	
-	list_t *it, *next;
-	// delete the particular entry
-	int counter =1;
-	if (!list_empty(&current->todo_list)){
-		TODO *todo_s;
-		PDEBUG("iterating over list");
-		list_for_each_safe(it, next, &current->todo_list){
-			if(counter == TODO_index){
-				PDEBUG("found index, deleting");
-				todo_s = list_entry(it, TODO, link);
-				kfree(todo_s->desc);
-				list_del(&todo_s->link);
-				kfree(todo_s);
-			}
-			PDEBUG("%d isn't it, looking on", counter);
-			counter++;
-		}
-	}
-	else{
-		PDEBUG("list is empty");
-	}
+	kfree(todo_s->desc);
+	list_del(&todo_s->link);
+	kfree(todo_s);
+	return 0;
 }
