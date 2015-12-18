@@ -10,10 +10,10 @@
 #include <linux/slab.h>
 #include <asm/uaccess.h>
 
-int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size);
-ssize_t read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status);
-int mark_TODO(pid_t pid, int TODO_index, int status);
-int delete_TODO(pid_t pid, int TODO_index);
+int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size);
+ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status);
+int sys_mark_TODO(pid_t pid, int TODO_index, int status);
+int sys_delete_TODO(pid_t pid, int TODO_index);
 
 
 #endif

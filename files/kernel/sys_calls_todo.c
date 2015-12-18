@@ -1,167 +1,154 @@
-/* ronen and arthur*/
+/* Joey&Noy*/
 #include <linux/sys_calls_todo.h>
 #include <linux/string.h>
 
-/*list for ranks*/
-list_t ranks;
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
 
 
+extern struct task_struct *find_task_by_vpid(pid_t nr);
 
-int sys_register_mpi(void){
-	rankS *newRank = kmalloc(sizeof(rankS),GFP_KERNEL);
-	/* check allocation */
-    if (newRank == NULL){
-        return -ENOMEM;
-    }
-	newRank->taskPtr = current;
-	/* register a process to mpi */
-    if (!(list_empty(&ranks)))  
-	{
-        /* if its not the first process in the MPI */
-		int myPid = current->pid;
-        int max_rank = 0;
-		list_t *itr,*next;
-        list_t *rankItr,*rankNext;
-		rankS *tempRank,*maxRankTemp;
-		/* check if the process is already registered */ 
-        list_for_each_safe(itr, next, &ranks){
-			tempRank = list_entry(itr, rankS, listPtr);
-			if (tempRank->taskPtr->pid == myPid){
-                kfree(newRank); // no new item was inserted
-				return tempRank->rank;
-			}
-		}
-        /*else find the highest rank so far */ 
-        list_for_each_safe(rankItr, rankNext, &ranks){
-            maxRankTemp = list_entry(rankItr, rankS, listPtr);
-            if (maxRankTemp->rank > max_rank){
-                max_rank = maxRankTemp->rank;
-            }
-        }
-        /* add the new process to the rank list */ 
-        newRank->rank = max_rank+1;
-		list_add(&newRank->listPtr, &ranks);
-		return newRank->rank;
-	}
-	else
-	{
-        /* first registered process => rank =0 */ 
-		newRank->rank = 0;
-		list_add(&newRank->listPtr, &ranks);
-		return 0;
-	}
-    
-}
-int sys_send_mpi_message(int rank, const char *message, int message_size){
-	int myPid = current->pid;
-	int myRank = -1;
-	list_t *itr,*next;
-	rankS *tempRank;
-	if (message == NULL || message_size<1){
-		return -EINVAL;
+//--------------------------Utility funcs -----------------------------------------------------
 
-	}
-	if (list_empty(&ranks)){
-      return -ESRCH;
-
-    }
-	/* check if the sending process is registered in the MPI*/
-	list_for_each_safe(itr, next, &ranks){
-		tempRank = list_entry(itr, rankS, listPtr);
-		if (tempRank->taskPtr->pid == myPid){
-			myRank = tempRank->rank;
-			break;
-		}
-	}
-	if (myRank <0){
-		return -ESRCH;
-
-	}
-	/**********************************************/
+int isDesendantOfCurrentProcess(pid_t maybe_baby){
+	task_t* child = find_task_by_vpid(maybe_baby);
+	if(child == NULL) return FALSE; //no such pid
 	
-	list_for_each_safe(itr, next, &ranks){
-		tempRank = list_entry(itr, rankS, listPtr);
-		
-		if (tempRank->rank == rank){
-			//allocate new struct for new msg
-			MSG *new_msg = (MSG*)kmalloc(sizeof(MSG),GFP_KERNEL);
-			if (new_msg == NULL){
-                return -ENOMEM;
-
-            }
-			// allocate new message
-			new_msg->msg = kmalloc(sizeof(char)*(message_size+1),GFP_KERNEL);
-			if (new_msg->msg == NULL){
-                return -ENOMEM;
-    
-            }
-			/* copy from user to kernel */ 
-			if( copy_from_user(new_msg->msg, message, message_size) != 0 ){
-				return -EFAULT;
-
-			}
-			new_msg->msg[message_size] = '\0';
-			new_msg->fromRank = myRank;
-			// add message to end of list (FIFO)
-			list_add_tail(&new_msg->ptr, &tempRank->taskPtr->msg_queue);
-			return 0;	
-		}
+	pid_t currentPID = current->pid;
+	while(child->pid !=  task_init->pid){
+		if (child->p_pptr->pid == currentPID) return TRUE;
+		child = child->p_pptr;
 	}
-    /* return this value if rank was not found - or not registered */ 
-	return -ESRCH;
+	return FALSE;
 }
-int sys_receive_mpi_message(int rank, char *message, int message_size){
-	list_t *itr,*next;
-	MSG *tempMsg;
-	rankS *tempRank;
-	int myPid = current->pid;
-	int foundRank = 0;
-	int copy_size = message_size;
+
+int legalAccessToProcess(pid_t pid){
+	if(isDesendantOfCurrentProcess(pid) == TRUE || pid == current->pid) return TRUE;
+	return FALSE;
+}
+
+TODO* getTODOByIndex(list_t* head, int index){
+	if(head == NULL || index < 1) return NULL;
 	
-    /* check ivalid args */ 
-    if (message_size<1 || message==NULL){
-        return -EINVAL;
-    }
-    if (list_empty(&ranks)){
-        return -ESRCH;
-    }
-    /* check if the receiving process is registered in the MPI*/
-	list_for_each_safe(itr, next, &ranks){
-		tempRank = list_entry(itr, rankS, listPtr);
-		if (tempRank->taskPtr->pid == myPid){
-			foundRank=1;
-			break;
+	list_t *it, *next;
+	int counter =1;
+	// delete the list if it isn't empty 
+	if (!list_empty(head)){
+		list_for_each_safe(it, next, &current->todo_list){
+			if(counter==index) return list_entry(it, TODO, link);
+			
+			counter++;
 		}
 	}
-	if (!foundRank){
-		return -ESRCH;
-	}
-    
-    /********************************************************/
-    
-	if (!(list_empty(&current->msg_queue))){
-		list_for_each_safe(itr, next, &current->msg_queue){
-			tempMsg = list_entry(itr, MSG, ptr);
-			if (tempMsg->fromRank == rank){
-				if (message_size > strlen(tempMsg->msg))
-					copy_size = strlen(tempMsg->msg);
-				if (!copy_to_user(message, tempMsg->msg, copy_size)){
-					//message[copy_size] = '\0';
-					kfree(tempMsg->msg);
-					list_del(&tempMsg->ptr);
-					kfree(tempMsg);
-					return copy_size;
-					break;
-				}
-				else 
-				{
-                    return -EFAULT;
+	return NULL;
 
-				}
+	
+}
+//--------------------------End Utility funcs -----------------------------------------------------
+
+int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size){
+	//check legal access
+	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
+	//check legal parameters
+	if(TODO_description == NULL || description_size <1) return -EINVAL;
+	
+	//check memory allocation success
+	TODO* newTodo = kmalloc(sizeof(TODO), GFP_KERNEL);
+	if(newTodo == NULL) return -ENOMEM;
+	
+	newTodo->desc = kmalloc(sizeof(char)*(description_size+1), GFP_KERNEL);
+	if(newTodo->desc == NULL){
+		kfree(newTodo);
+		return -ENOMEM;
+	}
+	
+	//check copy from user space success
+	if(copy_from_user(newTodo->desc, TODO_description, description_size) !=0)
+	{
+		kfree(newTodo->desc);
+		kfree(newTodo);
+		return -EFAULT;
+	}
+	
+	/********************************************************/
+	
+	newTodo->status = 0;
+	newTodo->desc_size = description_size;
+	
+	//add the new todo element to the list
+	task_t* t = find_task_by_vpid(pid);
+	list_t todoList = t->todo_list;
+	list_add_tail(&newTodo->link, &todoList);
+	
+	return 0;
+}
+
+ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status){
+	//check legal access
+	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
+	//check legal parameters
+	if(TODO_index < 1 || TODO_description == NULL || description_size <1) return -EINVAL;
+	
+	//check index within range
+	struct task_struct *tsk = current;
+	TODO* todo_s = getTODOByIndex(&current->todo_list, TODO_index);
+	if(todo_s == NULL) return -EINVAL;
+	
+	//check buffer size < actual description size (buffer is big enough to hold the result)
+	ssize_t actualSize = todo_s->desc_size;
+	if(description_size < actualSize) return -EINVAL;
+	/**********************************************************/
+	
+	if(copy_to_user(TODO_description, todo_s->desc, actualSize) != 0){ //only copy what we really need
+		return -EFAULT;
+	}
+	return actualSize;
+}
+
+int sys_mark_TODO(pid_t pid, int TODO_index, int status){
+	//check legal access
+	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
+	//check legal parameters
+	if(TODO_index < 1) return -EINVAL;
+	//check index within range
+	struct task_struct *tsk = current;
+	TODO* todo_s = getTODOByIndex(&current->todo_list, TODO_index);
+	if(todo_s == NULL) return -EINVAL;
+	/**************************************************************/
+	
+	todo_s->status = status;
+	return 0;
+}
+
+int sys_delete_TODO(pid_t pid, int TODO_index){
+	//check legal access
+	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
+	//check legal parameters
+	if(TODO_index < 1) return -EINVAL;
+	//check index within range
+	struct task_struct *tsk = current;
+	TODO* todo_s = getTODOByIndex(&current->todo_list, TODO_index);
+	if(todo_s == NULL) return -EINVAL;	
+	/***************************************************************/
+	
+	list_t *it, *next;
+	// delete the particular entry
+	int counter =1;
+	if (!list_empty(&current->todo_list)){
+		TODO *todo_s;
+		list_for_each_safe(it, next, &current->todo_list){
+			if(counter == TODO_index){
+				todo_s = list_entry(it, TODO, link);
+				kfree(todo_s->desc);
+				list_del(&todo_s->link);
+				kfree(todo_s);
 			}
+			counter++;
 		}
-        
 	}
-	return -EFAULT;
-
 }
