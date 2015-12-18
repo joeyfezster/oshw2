@@ -78,7 +78,7 @@ int main()
 	printf("\n-Running single process checks-\n");
 
 	//Basic test, noy joey
-	checkResult(add_TODO(myPid, str1, descLength) , 0 , 0, "add1");
+	// checkResult(add_TODO(myPid, str1, descLength) , 0 , 0, "add1");
 	// checkResult(read_TODO(myPid, 1, pDesc, sizeOfReadBuffer, pStatus) , descLength , 0, "read 1st element");
 	
 	/**

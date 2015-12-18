@@ -24,8 +24,8 @@ int isDesendantOfCurrentProcess(pid_t maybe_baby){
 	if(child == NULL) return FALSE; //no such pid
 	
 	pid_t currentPID = current->pid;
-	while(child->pid !=  1){
-		if (child->p_pptr->pid == currentPID) return TRUE;
+	while(child->pid != NULL && child->pid !=1){
+		if (child->p_pptr != NULL && child->p_pptr->pid == currentPID) return TRUE;
 		child = child->p_pptr;
 	}
 	return FALSE;
