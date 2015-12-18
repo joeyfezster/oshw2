@@ -766,6 +766,10 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		p->tgid = current->tgid;
 		list_add(&p->thread_group, &current->thread_group);
 	}
+	
+	/* 	Joey&Noy */
+	// initialize the TODO list
+	INIT_LIST_HEAD(&p->todo_list);
 
 	SET_LINKS(p);
 	hash_pid(p);

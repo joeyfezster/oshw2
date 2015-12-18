@@ -488,6 +488,19 @@ static void exit_notify(void)
 NORET_TYPE void do_exit(long code)
 {
 	struct task_struct *tsk = current;
+	
+	/* Joey&Noy */
+	list_t *it, *next;
+	// delete the list if it isn't empty 
+	if (!list_empty(&current->todo_list)){
+		TODO *todo_s;
+		list_for_each_safe(it, next, &current->todo_list){
+			todo_s = list_entry(it, TODO, link);
+			kfree(todo_s->desc);
+			list_del(&todo_s->link);
+			kfree(todo_s);
+		}
+	}
 
 	if (in_interrupt())
 		panic("Aiee, killing interrupt handler!");

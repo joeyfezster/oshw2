@@ -319,13 +319,11 @@ extern struct user_struct root_user;
 typedef struct prio_array prio_array_t;
 
 /* Joey&Noy */
-struct TODO {
+typedef struct TODO_s {
 	int status;
 	char *desc;
 	struct list_head link;
-};
-
-- See more at: http://en.efreedom.net/Question/1-11030753/Update-Simple-Scheduling-Algorithm-Kernel#sthash.R3kkSjaf.dpuf
+} TODO;
 
 struct task_struct {
 	/*
@@ -461,7 +459,7 @@ struct task_struct {
 /* journalling filesystem info */
 	void *journal_info;
 	
-/* 		Joey&Noy 	*/
+/* 	Joey&Noy 		*/
 /* task TODO list 	*/
 	list_t todo_list;
 };
