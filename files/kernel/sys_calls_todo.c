@@ -14,7 +14,12 @@
 
 //--------------------------Utility funcs -----------------------------------------------------
 
+# define PDEBUG(fmt, args...) printk( KERN_DEBUG "HW1 %s, %s:%d: " fmt, __FILE__, __FUNCTION__, __LINE__, ## args); \
+											 printk("\n")
+#define ISNULL(x) ((x) == NULL) ? "yes" : "no"
+
 int isDesendantOfCurrentProcess(pid_t maybe_baby){
+	PDEBUG("child check for pid %d", maybe_baby);
 	task_t* child = find_task_by_pid(maybe_baby);
 	if(child == NULL) return FALSE; //no such pid
 	
@@ -27,11 +32,17 @@ int isDesendantOfCurrentProcess(pid_t maybe_baby){
 }
 
 int legalAccessToProcess(pid_t pid){
-	if(isDesendantOfCurrentProcess(pid) == TRUE || pid == current->pid) return TRUE;
+	PDEBUG("legality check for pid %d", pid);
+	if(isDesendantOfCurrentProcess(pid) == TRUE || pid == current->pid) {
+		PDEBUG("TRUE");
+		return TRUE;
+	}
+	PDEBUG("FALSE");
 	return FALSE;
 }
 
 TODO* getTODOByIndex(list_t* head, int index){
+	PDEBUG("index=%d, head is null?: %s", index, ISNULL(head));
 	if(head == NULL || index < 1) return NULL;
 	
 	list_t *it, *next;
@@ -39,7 +50,11 @@ TODO* getTODOByIndex(list_t* head, int index){
 	// delete the list if it isn't empty 
 	if (!list_empty(head)){
 		list_for_each_safe(it, next, &current->todo_list){
-			if(counter==index) return list_entry(it, TODO, link);
+			if(counter==index){
+				TODO* todo_s = list_entry(it, TODO, link);
+				PDEBUG("returning index %d, result is null?: %s", counter, ISNULL(todo_s));
+				return todo_s;
+			}
 			
 			counter++;
 		}
@@ -88,10 +103,11 @@ int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_si
 }
 
 ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status){
+	PDEBUG("request read: pid = %d, index = %d, null buffer? %s, bufferSize =%d, status ptr is null ? %s", pid, TODO_index, ISNULL(TODO_description), description_size ,ISNULL(status));
 	//check legal access
 	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
 	//check legal parameters
-	if(TODO_index < 1 || TODO_description == NULL || description_size <1) return -EINVAL;
+	if(TODO_index < 1 || TODO_description == NULL || description_size <1 || status == NULL) return -EINVAL;
 	
 	//check index within range
 	struct task_struct *tsk = current;
@@ -106,6 +122,7 @@ ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t
 	if(copy_to_user(TODO_description, todo_s->desc, actualSize) != 0){ //only copy what we really need
 		return -EFAULT;
 	}
+	*status = todo_s->status;
 	return actualSize;
 }
 
