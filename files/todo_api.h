@@ -106,9 +106,11 @@ int delete_TODO(pid_t pid, int TODO_index)
 	 __asm__
 		(
 		 "pushl %%eax;"
+		 "pushl %%ebx;"
 		 "pushl %%ecx;"
-		 "pushl %%edx;"
 		 "movl $246, %%eax;"
+		 "movl %1, %%ebx;"
+		 "movl %2, %%ecx;"
 		 "int $0x80;"
 		 "movl %%eax,%0;"
 		 "popl %%ecx;"

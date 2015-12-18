@@ -22,10 +22,14 @@ int isDesendantOfCurrentProcess(pid_t maybe_baby){
 	PDEBUG("child check for pid %d", maybe_baby);
 	task_t* child = find_task_by_pid(maybe_baby);
 	if(child == NULL || current == NULL) return FALSE; //no such pid
-	
+
 	pid_t currentPID = current->pid;
+	PDEBUG("asking pid is %d, maybe_baby is %d", currentPID, maybe_baby);
+	if(maybe_baby == currentPID) return TRUE;
 	while(child != NULL  && child->pid !=1){
-		if (child->pid == currentPID) return TRUE;
+		if (child->pid == currentPID){
+			return TRUE;
+		}
 		child = child->p_opptr;
 	}
 	return FALSE;
@@ -156,6 +160,7 @@ int sys_mark_TODO(pid_t pid, int TODO_index, int status){
 }
 
 int sys_delete_TODO(pid_t pid, int TODO_index){
+	PDEBUG("current pid %d asked to delete pid %d 's todo index %d", current->pid, pid, TODO_index);
 	//check legal access
 	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
 	//check legal parameters
@@ -164,6 +169,8 @@ int sys_delete_TODO(pid_t pid, int TODO_index){
 	struct task_struct *tsk = current;
 	TODO* todo_s = getTODOByIndex(&current->todo_list, TODO_index);
 	if(todo_s == NULL) return -EINVAL;	
+	
+	PDEBUG("delete todo validations complete!");
 	/***************************************************************/
 	
 	list_t *it, *next;
@@ -171,14 +178,20 @@ int sys_delete_TODO(pid_t pid, int TODO_index){
 	int counter =1;
 	if (!list_empty(&current->todo_list)){
 		TODO *todo_s;
+		PDEBUG("iterating over list");
 		list_for_each_safe(it, next, &current->todo_list){
 			if(counter == TODO_index){
+				PDEBUG("found index, deleting");
 				todo_s = list_entry(it, TODO, link);
 				kfree(todo_s->desc);
 				list_del(&todo_s->link);
 				kfree(todo_s);
 			}
+			PDEBUG("%d isn't it, looking on", counter);
 			counter++;
 		}
+	}
+	else{
+		PDEBUG("list is empty");
 	}
 }
