@@ -14,26 +14,26 @@
 
 //--------------------------Utility funcs -----------------------------------------------------
 
-# define PDEBUG(fmt, args...) printk( KERN_DEBUG "HW1 %s, %s:%d: " fmt, __FILE__, __FUNCTION__, __LINE__, ## args); \
+# define PDEBUG(fmt, args...) printk( KERN_DEBUG "HW2 %s, %s:%d: " fmt, __FILE__, __FUNCTION__, __LINE__, ## args); \
 											 printk("\n")
 #define ISNULL(x) ((x) == NULL) ? "yes" : "no"
 
 int isDesendantOfCurrentProcess(pid_t maybe_baby){
 	PDEBUG("child check for pid %d", maybe_baby);
 	task_t* child = find_task_by_pid(maybe_baby);
-	if(child == NULL) return FALSE; //no such pid
+	if(child == NULL || current == NULL) return FALSE; //no such pid
 	
 	pid_t currentPID = current->pid;
-	while(child->pid != NULL && child->pid !=1){
-		if (child->p_pptr != NULL && child->p_pptr->pid == currentPID) return TRUE;
-		child = child->p_pptr;
+	while(child != NULL  && child->pid !=1){
+		if (child->pid == currentPID) return TRUE;
+		child = child->p_opptr;
 	}
 	return FALSE;
 }
 
 int legalAccessToProcess(pid_t pid){
 	PDEBUG("legality check for pid %d", pid);
-	if(isDesendantOfCurrentProcess(pid) == TRUE || pid == current->pid) {
+	if(isDesendantOfCurrentProcess(pid) == TRUE || ( current != NULL && pid == current->pid)) {
 		PDEBUG("TRUE");
 		return TRUE;
 	}
@@ -43,7 +43,11 @@ int legalAccessToProcess(pid_t pid){
 
 TODO* getTODOByIndex(list_t* head, int index){
 	PDEBUG("index=%d, head is null?: %s", index, ISNULL(head));
-	if(head == NULL || index < 1) return NULL;
+	if(head == NULL || index < 1 || current == NULL) return NULL;
+	// if(WARN_ON( current->todo_list == NULL)){
+			// PDEBUG("Horrible things!!!! current->todo_list is null!!\ncurrent is %d", current->pid);
+			// return NULL;
+	// }
 	
 	list_t *it, *next;
 	int counter =1;
@@ -64,8 +68,16 @@ TODO* getTODOByIndex(list_t* head, int index){
 	
 }
 //--------------------------End Utility funcs -----------------------------------------------------
+//--------------------------Test function -----------------------------------------------------
+int sys_sanity_test(){
+	PDEBUG("sanity test");
+	return 0;
+}
+
+//--------------------------End Test function -----------------------------------------------------
 
 int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size){
+	PDEBUG("reached add");
 	//check legal access
 	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
 	//check legal parameters
@@ -88,7 +100,7 @@ int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_si
 		kfree(newTodo);
 		return -EFAULT;
 	}
-	
+	PDEBUG("finished sys_add_TODO validations");
 	/********************************************************/
 	
 	newTodo->status = 0;
@@ -96,8 +108,10 @@ int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_si
 	
 	//add the new todo element to the list
 	task_t* t = find_task_by_pid(pid);
-	list_t todoList = t->todo_list;
-	list_add_tail(&newTodo->link, &todoList);
+	if(t == NULL) return -ESRCH;
+	
+	PDEBUG("Adding new todo to list");
+	list_add_tail(&newTodo->link, &t->todo_list);
 	
 	return 0;
 }

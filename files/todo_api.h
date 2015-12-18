@@ -124,3 +124,23 @@ int delete_TODO(pid_t pid, int TODO_index)
 	 }
 	 return (int) res;
  }
+ 
+int sanity_test(void)
+ {
+	 int res;
+	 __asm__
+		(
+		 "pushl %%eax;"
+		 "movl $247, %%eax;"
+		 "int $0x80;"
+		 "movl %%eax,%0;"
+		 : "=m" (res)
+		 );
+	 if (res >= (unsigned long)(-125))
+	 {
+		 errno = -res;
+		 res = -1;
+	 }
+	 return (int) res;
+ }
+

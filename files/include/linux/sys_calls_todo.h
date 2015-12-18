@@ -14,6 +14,7 @@ int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_si
 ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status);
 int sys_mark_TODO(pid_t pid, int TODO_index, int status);
 int sys_delete_TODO(pid_t pid, int TODO_index);
+int sys_sanity_test();
 
 
 #endif
