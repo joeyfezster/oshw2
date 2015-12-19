@@ -14,7 +14,7 @@
 
 //--------------------------Utility funcs -----------------------------------------------------
 
-# define PDEBUG(fmt, args...) printk( KERN_DEBUG "HW2 %s, %s:%d: " fmt, __FILE__, __FUNCTION__, __LINE__, ## args); \
+# define  PDEBUG(fmt, args...) do {} while (0)  // printk( KERN_DEBUG "HW2 %s, %s:%d: " fmt, __FILE__, __FUNCTION__, __LINE__, ## args); \
 											 printk("\n")
 #define ISNULL(x) ((x) == NULL) ? "yes" : "no"
 
