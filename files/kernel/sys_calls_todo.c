@@ -64,8 +64,46 @@ TODO* getTODOByIndex(list_t* head, int index){
 		}
 	}
 	return NULL;
+}
 
+/**
+* returns null if:
+*   1. head is null
+*	 2. there's a null TODO in the list
+*	 3. all TODO's in the list are later than deadline
+*
+**/
+TODO* getTODOByNearestEarlyDeadline(list_t* head, time_t deadline){
+	PDEBUG("deadline=%d, head is null?: %s", deadline, ISNULL(head));
+	if(head == NULL ) return NULL;
 	
+	TODO* maxDeadlineBeforeGivenDeadline = getTODOByIndex(head,1);
+	if(maxDeadlineBeforeGivenDeadline == NULL) return NULL;
+	if(maxDeadlineBeforeGivenDeadline->deadline > deadline){
+		PDEBUG("deadline is prior to all deadlines in the list");
+		return NULL
+	}
+	
+	list_t *it, *next;
+	int counter =1;
+	// go over all the todo's in the list, and find the one with the latest deadline that is before deadline
+	
+	if (!list_empty(head)){
+		list_for_each_safe(it, next, head){
+			TODO* todo_s = list_entry(it, TODO, link);
+			PDEBUG("checking index %d, this TODO is null?: %s, this TODO's deadline is %d", counter, ISNULL(todo_s), todo_s->deadline);
+			counter++;
+			if(ISNULL(todo_s)){
+				PDEBUG("bad shit happened! null TODO in list");
+				return NULL;
+			}
+			if(todo_s->deadline > maxDeadlineBeforeGivenDeadline->deadline && todo_s->deadline < deadline){
+				maxDeadlineBeforeGivenDeadline = todo_s;
+			}
+		}
+	}
+	return maxDeadlineBeforeGivenDeadline;
+
 }
 //--------------------------End Utility funcs -----------------------------------------------------
 //--------------------------Test function -----------------------------------------------------
@@ -76,12 +114,12 @@ int sys_sanity_test(){
 
 //--------------------------End Test function -----------------------------------------------------
 
-int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size){
+int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size, time_t TODO_deadline){
 	PDEBUG("reached add");
 	//check legal access
 	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
 	//check legal parameters
-	if(TODO_description == NULL || description_size <1) return -EINVAL;
+	if(TODO_description == NULL || description_size < 1 || TODO_deadline < CURRENT_TIME) return -EINVAL;
 	
 	//check memory allocation success
 	TODO* newTodo = kmalloc(sizeof(TODO), GFP_KERNEL);
@@ -105,18 +143,20 @@ int sys_add_TODO(pid_t pid, const char *TODO_description, ssize_t description_si
 	
 	newTodo->status = 0;
 	newTodo->desc_size = description_size;
+	newTodo->deadline = TODO_deadline;
 	
 	//add the new todo element to the list
 	task_t* t = find_task_by_pid(pid);
 	if(t == NULL) return -ESRCH;
 	
 	PDEBUG("Adding new todo to list");
-	list_add_tail(&newTodo->link, &t->todo_list);
+	TODO* prior = getTODOByNearestEarlyDeadline(&t->todo_list, deadline);
+	list_add(&newTodo->link, &prior->link);
 	
 	return 0;
 }
 
-ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status){
+ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, time_t* TODO_deadline, int* status){
 	PDEBUG("request read: pid = %d, index = %d, null buffer? %s, bufferSize =%d, status ptr is null ? %s", pid, TODO_index, ISNULL(TODO_description), description_size ,ISNULL(status));
 	//check legal access
 	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
