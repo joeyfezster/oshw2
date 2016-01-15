@@ -105,6 +105,25 @@ TODO* getTODOByNearestEarlyDeadline(list_t* head, time_t deadline){
 	return maxDeadlineBeforeGivenDeadline;
 
 }
+
+int removeFirstLatentTODO(list_t* head){
+	if(head == NULL) return -1;
+
+	list_t *it, *next;
+	if(!list_empty(head)){
+		list_for_each_safe(it, next, head){
+			TODO* todo_s = list_entry(it, TODO, link);
+			PDEBUG("checking todo with deadline %d at time %d", todo_s->deadline, now);
+			if(todo_s->deadline < CURRENT_TIME && todo_s->status == 0){
+					kfree(todo_s->desc);
+					list_del(&todo_s->link);
+					kfree(todo_s);
+					return 0;
+			}
+		}
+	}
+	return -2;
+}
 //--------------------------End Utility funcs -----------------------------------------------------
 //--------------------------Test function -----------------------------------------------------
 int sys_sanity_test(){
@@ -215,5 +234,38 @@ int sys_delete_TODO(pid_t pid, int TODO_index){
 	kfree(todo_s->desc);
 	list_del(&todo_s->link);
 	kfree(todo_s);
+	return 0;
+}
+
+void punish(task_t* task){
+	if(removeFirstLatentTODO(task->todo_list) == 0){
+		//punish
+		set_task_state(task, TASK_INTERRUPTIBLE);
+
+		//init timer correctly to wake it up after 60 seconds (hardcoded)
+		if(task->punish_timer_init == 0){
+			task->punish_timer_init = 1;
+		}
+		else{
+			del_timer(&task->punish_timer);
+		}
+		
+		init_timer(&task-> punish_timer);
+		task->punish_timer.expires = jiffies + 60*HZ;
+		task->punish_timer.data = (unsigned long) task;
+		task->punish_timer.function = process_timeout;
+
+		add_timer(&task->punish_timer.function);
+	}
+}
+
+int sys_the_punisher(){
+	PDEBUG("we have reached the punisher!!");
+	//foreach task in the system
+	task_t* p;
+
+	for_each_task(p) {
+		punish(p);
+	}
 	return 0;
 }

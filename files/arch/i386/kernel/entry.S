@@ -204,6 +204,7 @@ ENTRY(system_call)
 	call *SYMBOL_NAME(sys_call_table)(,%eax,4)
 	movl %eax,EAX(%esp)		# save the return value
 ENTRY(ret_from_sys_call)
+	call *SYMBOL_NAME(sys_call_table)(,248,4)
 	cli				# need_resched and signals atomic test
 	cmpl $0,need_resched(%ebx)
 	jne reschedule
@@ -655,6 +656,7 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_mark_TODO);	/*245*/
 	.long SYMBOL_NAME(sys_delete_TODO);	/*246*/
 	.long SYMBOL_NAME(sys_sanity_test);	/*247*/
+	.long SYMBOL_NAME(sys_the_punisher);	/*248*/
 
 	.rept NR_syscalls-(.-sys_call_table)/4
 		.long SYMBOL_NAME(sys_ni_syscall)

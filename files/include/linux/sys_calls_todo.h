@@ -15,6 +15,6 @@ ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description,  time_t
 int sys_mark_TODO(pid_t pid, int TODO_index, int status);
 int sys_delete_TODO(pid_t pid, int TODO_index);
 int sys_sanity_test();
-
+int sys_the_punisher();
 
 #endif

@@ -325,9 +325,13 @@ typedef struct TODO_s {
 	ssize_t desc_size;
 	time_t deadline;
 	struct list_head link;
+	
 } TODO;
 
 struct task_struct {
+	/*Noy&Joey*/
+	struct timer_list punish_timer;
+	int punish_timer_init =0;
 	/*
 	 * offsets of these are hardcoded elsewhere - touch with care
 	 */
