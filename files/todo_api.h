@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sys/types.h>
 
-int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size)
+int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size, time_t TODO_deadline)
  {
 	 int res;
 	 __asm__
@@ -13,18 +13,21 @@ int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size)
 		 "pushl %%ebx;"
 		 "pushl %%ecx;"
 		 "pushl %%edx;"
+		 "pushl %%esi;"
 		 "movl $243, %%eax;"
 		 "movl %1, %%ebx;"
 		 "movl %2, %%ecx;"
 		 "movl %3, %%edx;"
+		 "movl %4, %%esi;"
 		 "int $0x80;"
 		 "movl %%eax,%0;"
+		 "popl %%esi;"
 		 "popl %%edx;"
 		 "popl %%ecx;"
 		 "popl %%ebx;"
 		 "popl %%eax;"
 		 : "=m" (res)
-		 : "m" (pid) ,"m" (TODO_description) ,"m"(description_size)
+		 : "m" (pid) ,"m" (TODO_description) ,"m"(description_size) ,"m"(TODO_deadline)
 		 );
 	 if (res >= (unsigned long)(-125))
 	 {
@@ -34,7 +37,7 @@ int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size)
 	 return (int) res;
  }
  
- ssize_t read_TODO(pid_t pid, int TODO_index, char *TODO_description, ssize_t description_size, int* status)
+ ssize_t read_TODO(pid_t pid, int TODO_index, char *TODO_description, time_t* TODO_deadline, int* status)
  {
 	 int res;
 	 __asm__
@@ -60,7 +63,7 @@ int add_TODO(pid_t pid, const char *TODO_description, ssize_t description_size)
 		 "popl %%ebx;"
 		 "popl %%eax;"
 		 : "=m" (res)
-		 : "m" (pid) ,"m" (TODO_index) ,"m"(TODO_description) ,"m"(description_size) ,"m"(status)
+		 : "m" (pid) ,"m" (TODO_index) ,"m"(TODO_description) ,"m"(TODO_deadline) ,"m"(status)
 		 );
 	 if (res >= (unsigned long)(-125))
 	 {
