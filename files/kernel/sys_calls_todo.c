@@ -161,7 +161,7 @@ ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, time_t*
 	//check legal access
 	if(legalAccessToProcess(pid) != TRUE) return -ESRCH;
 	//check legal parameters
-	if(TODO_index < 1 || TODO_description == NULL || description_size <1 || status == NULL) return -EINVAL;
+	if(TODO_index < 1 || TODO_description == NULL || status == NULL) return -EINVAL;
 	
 	//check index within range
 	task_t* t = find_task_by_pid(pid);
@@ -171,13 +171,13 @@ ssize_t sys_read_TODO(pid_t pid, int TODO_index, char *TODO_description, time_t*
 	
 	//check buffer size < actual description size (buffer is big enough to hold the result)
 	ssize_t actualSize = todo_s->desc_size;
-	if(description_size < actualSize) return -EINVAL;
 	/**********************************************************/
 	PDEBUG("this pid: %d, requested pid: %d, todo index %d, description: %s, descriptionSize: %d, status: %d", current->pid, pid, TODO_index, todo_s->desc, todo_s->desc_size, todo_s->status);
 	if(copy_to_user(TODO_description, todo_s->desc, actualSize) != 0){ //only copy what we really need
 		return -EFAULT;
 	}
 	*status = todo_s->status;
+	*TODO_deadline = todo_s->deadline;
 	return actualSize;
 }
 
