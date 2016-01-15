@@ -323,6 +323,7 @@ typedef struct TODO_s {
 	int status;
 	char *desc;
 	ssize_t desc_size;
+	time_t deadline;
 	struct list_head link;
 } TODO;
 
